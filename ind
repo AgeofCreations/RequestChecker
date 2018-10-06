@@ -1,0 +1,66 @@
+from Souce.ui import *
+from PyQt5 import QtCore, QtGui,QtWidgets
+import urllib.request
+import time
+
+#--------------------------------------------------------------------------------------
+#Объявление UI
+class MyWin(QtWidgets.QMainWindow):
+    signal = QtCore.pyqtSignal(list)
+    signalG = QtCore.pyqtSignal(list)
+    signalB = QtCore.pyqtSignal(list)
+    signalN = QtCore.pyqtSignal(list)
+    def __init__(self, parent=None):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.ui = Ui_RequestCheckerUI()
+        self.ui.setupUi(self)
+        self.signal.connect(lambda s: self.ui.textEdit.toPlainText())
+        self.signalG.connect(lambda s: self.ui.textBrowser.append())
+        self.signalB.connect(lambda s: self.ui.textBrowser_2.append())
+        self.signalN.connect(lambda s: self.ui.textEdit.append())
+
+        # Здесь прописываем событие нажатия на кнопку
+        self.ui.pushButton.clicked.connect(f)
+#-------------------------------------------------------------------------------------
+    #объявление функции, переменных, массива.
+
+        #Цикл, который собирает и выводит ответы сервера
+
+
+#UI запуск
+if __name__=="__main__":
+    import sys
+    import threading
+    app = QtWidgets.QApplication(sys.argv)
+    myapp = MyWin()
+    myapp.show()
+
+    def funcCheck():
+        myapp.ui.textBrowser.setText("")
+        myapp.ui.textBrowser_2.setText("")
+        stroki = myapp.ui.textEdit.toPlainText()
+        mas = stroki.split('\n')
+        result_good = ''
+        result_bad = ''
+
+        for stroka in mas:
+            url = (stroka)
+            reqCode = urllib.request.urlopen(url).getcode()
+            myapp.signalN.emit(url)
+            reqCodeStr3 = str(reqCode)
+            myapp.signalN.emit(reqCodeStr3)
+
+        if reqCode == 200:
+            reqCodeStr = str(reqCode)
+            result_good = url + '------' + reqCodeStr + '\n'
+            myapp.signalG.emit(result_good)
+        elif reqCode == 301 or 302 or 303 or 304 or 305 or 300 or 400 or 401 or 402 or 403 or 404 or 405 or 500 or 501 or 502 or 503 or 504 or 505:
+            reqCodeStr2 = str(reqCode)
+            result_bad = url + '------' + reqCodeStr2 + '\n'
+            myapp.signalB.emit(result_bad)
+
+    threading.Thread(target=funcCheck).start()
+
+
+
+    sys.exit(app.exec_())
