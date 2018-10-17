@@ -1,0 +1,86 @@
+from Souce.ui import *
+from PyQt5.Qt import *
+import requests
+
+
+#-------------------Обработка исключений--------------------------
+def log_uncaught_exceptions(ex_cls, ex, tb):
+    text = '{}: {}:\n'.format(ex_cls.__name__, ex)
+    import traceback
+    text += ''.join(traceback.format_tb(tb))
+
+    print(text)
+    QMessageBox.critical(None, 'Error', text)
+    quit()
+
+    import sys
+    sys.excepthook = log_uncaught_exceptions
+
+#------------------Thread---------------------
+class MyCheckUrlThread(QThread):
+    about_check_url = pyqtSignal(str)
+    good_requested_url = pyqtSignal(str)
+    bad_requested_url = pyqtSignal(str)
+
+    def __init__(self, urls):
+        super().__init__()
+
+        self.urls = urls
+
+    def run(self):
+        for url in self.urls:
+            try:
+                shit = requests.get(url, allow_redirects=False)
+                code = shit.status_code
+            except Exception as e:
+                # Пусть будет исключение
+                code = str(e)
+                self.bad_requested_url.emit('{}------{}'.format(url, code))
+
+            self.about_check_url.emit('{}------{}'.format(url, code))
+
+            if code == 200:
+                self.good_requested_url.emit('{}------{}'.format(url, code))
+            elif code == 307 or 301:
+                self.bad_requested_url.emit('{}------{}'.format(url, code))
+#-------------------Объявление UI-----------------------
+class MyWin(QMainWindow):
+    def __init__(self, parent=None):
+        super().__init__()
+
+        self.ui = Ui_RequestCheckerUI()
+        self.ui.setupUi(self)
+        self.urls = self.ui.textEdit
+
+        self.result = self.ui.textEdit_2
+        self.good = self.ui.textBrowser
+        self.bad = self.ui.textBrowser_2
+
+        self.ui.pushButton.clicked.connect(self._on_click_check)
+
+        self.thread = MyCheckUrlThread(urls=None)
+        self.thread.about_check_url.connect(self._on_about_check_url)
+        self.thread.good_requested_url.connect(self._good_requested_url)
+        self.thread.bad_requested_url.connect(self._bad_requested_url)
+
+    def _on_click_check(self):
+        urls = self.urls.toPlainText().strip().split('\n')
+
+        self.thread.urls = urls
+        self.thread.start()
+
+    def _on_about_check_url(self, text):
+        self.result.append(text)
+
+    def _good_requested_url(self, text):
+        self.good.append(text)
+
+    def _bad_requested_url(self,text):
+        self.bad.append(text)
+#UI запуск
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    myapp = MyWin()
+    myapp.show()
+    app.exec()
+
